@@ -1,49 +1,62 @@
 import sys
+import random
+from collections import Counter
 
-## ZeroR - our first learning algorithm.
-### assume that list_of_examples is a list of strings. For example:
-### ['outlook,temperature,humidity,windy,play\n', 'sunny,hot,high,FALSE,no\n', 'sunny,hot,high,TRUE,no\n', 'overcast,hot,high,FALSE,yes\n', 'rainy,mild,high,FALSE,yes\n', 'rainy,cool,normal,FALSE,yes\n', 'rainy,cool,normal,TRUE,no\n', 'overcast,cool,normal,TRUE,yes\n', 'sunny,mild,high,FALSE,no\n', 'sunny,cool,normal,FALSE,yes\n', 'rainy,mild,normal,FALSE,yes\n', 'sunny,mild,normal,TRUE,yes\n', 'overcast,mild,high,TRUE,yes\n', 'overcast,hot,normal,FALSE,yes\n', 'rainy,mild,high,TRUE,no\n']
-### your code should get the last element in each string, which is the classification, and return the most common one.
-
-def zeroR(list_of_examples) :
-    return "zeroR" # you fix this.
-
-### assume that list_of_examples is a list of strings. For example:
-### ['outlook,temperature,humidity,windy,play\n', 'sunny,hot,high,FALSE,no\n', 'sunny,hot,high,TRUE,no\n', 'overcast,hot,high,FALSE,yes\n', 'rainy,mild,high,FALSE,yes\n', 'rainy,cool,normal,FALSE,yes\n', 'rainy,cool,normal,TRUE,no\n', 'overcast,cool,normal,TRUE,yes\n', 'sunny,mild,high,FALSE,no\n', 'sunny,cool,normal,FALSE,yes\n', 'rainy,mild,normal,FALSE,yes\n', 'sunny,mild,normal,TRUE,yes\n', 'overcast,mild,high,TRUE,yes\n', 'overcast,hot,normal,FALSE,yes\n', 'rainy,mild,high,TRUE,no\n']
-### your code should get the last element in each string, which is the classification, and use random.choice() to select one and return it
-
-def randR(list_of_examples) :
-    return "randR" # you fix this.
-
-
-
-## Our main. We should be able to run from the command line like so:
-## python ZeroR.py tennis.csv
-## python ZeroR.py -z tennis.csv
-## python ZeroR.py -r tennis.csv
-
-if __name__ == '__main__' :
-
-    classify_type = "-z"
-    if len(sys.argv) < 2:
-        print("Usage:  classify {-z|-r} file")
+def zeroR(list_of_examples):
+    """Returns the most common classification label in the dataset."""
+    if len(list_of_examples) < 2:  # If only header exists
+        print("Error: No data found in the file.")
         sys.exit(-1)
-    if len(sys.argv) == 3 :
+    
+    classifications = [line.strip().split(',')[-1] for line in list_of_examples[1:]]  # Skip header
+    most_common = Counter(classifications).most_common(1)[0][0]  # Get most common label
+    return most_common
+
+def randR(list_of_examples):
+    """Returns a classification randomly based on frequency distribution."""
+    if len(list_of_examples) < 2:  # If only header exists
+        print("Error: No data found in the file.")
+        sys.exit(-1)
+    
+    classifications = [line.strip().split(',')[-1] for line in list_of_examples[1:]]
+    counts = Counter(classifications)
+    labels, frequencies = zip(*counts.items())  # Separate labels and their counts
+    probabilities = [freq / sum(frequencies) for freq in frequencies]  # Normalize to get probabilities
+    return random.choices(labels, probabilities)[0]  # Select based on probability
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: python ZeroR.py {-z|-r} file")
+        sys.exit(-1)
+
+    classify_type = "-z"  # Default to ZeroR
+    if len(sys.argv) == 3:
         classify_type = sys.argv[1]
-        if classify_type != "-z" and classify_type != "-r" :
-            print("Usage:  classify {-z|-r} file")
+        if classify_type not in ["-z", "-r"]:
+            print("Usage: python ZeroR.py {-z|-r} file")
             sys.exit(-1)
+
     fname = sys.argv[-1]
 
-    with open(fname) as f :
-        data = f.readlines()
-        if classify_type == "-z" :
-            print(zeroR(data))
-            ## change this to use ZeroR to find the most common classification, and then
-            ## compare that value to the true classification for each line to compute accuracy.
-            ## (fraction of answers that are correct.)
-        else :
-            print(randR(data))
-            ## change this so that, for each line in the dataset, you are calling RandR to generate a prediction
-            ## and comparing that to the actual classification. Use this to compute accuracy.
-            ## (fraction of answers that are correct.)
+    try:
+        with open(fname) as f:
+            data = f.readlines()
+    except FileNotFoundError:
+        print(f"Error: File '{fname}' not found.")
+        sys.exit(-1)
+
+    if len(data) < 2:  # If file is empty or only contains a header
+        print("Error: No data rows found in the file.")
+        sys.exit(-1)
+
+    correct_count = 0
+    total_count = len(data) - 1  # Exclude header
+
+    if classify_type == "-z":
+        prediction = zeroR(data)
+        correct_count = sum(1 for line in data[1:] if line.strip().split(',')[-1] == prediction)
+    else:
+        correct_count = sum(1 for line in data[1:] if line.strip().split(',')[-1] == randR(data))  # Call randR per example
+
+    accuracy = correct_count / total_count
+    print(f"Accuracy: {accuracy:.2f}")
